@@ -1,0 +1,39 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: campusvision_db
+      POSTGRES_USER: campusvision
+      POSTGRES_PASSWORD: password
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U campusvision -d campusvision_db"]
+      interval: 5s
+      retries: 10
+
+  web:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://campusvision:password@db:5432/campusvision_db
+      FLASK_ENV: production
+      SECRET_KEY: change-me-in-production
+      FACE_TOLERANCE: "0.5"
+      FACE_MODEL: hog
+    volumes:
+      - uploads:/app/app/static/uploads
+      - encodings:/app/app/data
+    ports:
+      - "5000:5000"
+
+volumes:
+  pgdata:
+  uploads:
+  encodings:
